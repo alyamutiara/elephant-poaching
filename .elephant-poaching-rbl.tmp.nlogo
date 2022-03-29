@@ -43,6 +43,35 @@ to go
     set size age / circle-size
   ]
 
+
+  ;; give birth
+  ;; adult elephant will give birth every 6 years
+
+  if gender = "female" and age mod 6 = 0 [
+
+    ;; default offspring value
+    let offspring-gender "male"
+    let offspring-color red
+
+    ;; create female offspring
+    if random 2 = 1 [
+      set offspring-gender "female"
+      set offspring-color green
+    ]
+
+    ;; female elephant give birth to a baby elephant
+    ;; with age 0 and properties as declared above
+    hatch 1 [
+      set age 0
+      set xcor random-xcor set ycor random-ycor
+      set gender offspring-gender
+      set color offspring-color
+    ]  ;; / hatch
+
+
+
+  ]  ;; / if
+
   ;; die naturally from old age
   ask turtles [
     if age > max-age [ die ]
@@ -153,7 +182,7 @@ initial-number-elephants
 initial-number-elephants
 1
 2200
-870.0
+20.0
 1
 1
 NIL
@@ -195,7 +224,7 @@ INPUTBOX
 96
 246
 period
-25.0
+50.0
 1
 0
 Number
