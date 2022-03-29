@@ -55,15 +55,36 @@ to go
   if ticks = period * 4 [ stop ]
 
 end
+
+
+;; ===== for plotting =====
+
+; count number of male elephant
+to-report count-males
+  ifelse count turtles with [ gender = "male" ] > 0 [
+    report count turtles with [ gender = "male" ]
+  ]
+  [ report 0 ]
+end
+
+; count number of female elephant
+to-report count-females
+  ifelse count turtles with [ gender = "female" ] > 0 [
+    report count turtles with [ gender = "female" ]
+  ]
+  [ report 0 ]
+end
+
+;; / end plotting
 @#$#@#$#@
 GRAPHICS-WINDOW
-394
-44
-831
-482
+401
+39
+1250
+503
 -1
 -1
-13.0
+13.8
 1
 10
 1
@@ -73,8 +94,8 @@ GRAPHICS-WINDOW
 1
 1
 1
--16
-16
+-30
+30
 -16
 16
 0
@@ -153,7 +174,7 @@ initial-number-elephants
 initial-number-elephants
 1
 2200
-870.0
+2200.0
 1
 1
 NIL
@@ -195,21 +216,40 @@ INPUTBOX
 96
 246
 period
-25.0
+50.0
 1
 0
 Number
 
 MONITOR
-393
-490
-450
-535
+400
+509
+457
+554
 year
 ticks / 4
 0
 1
 11
+
+PLOT
+1264
+39
+1641
+253
+number of elephant
+year
+number elephant
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"male" 1.0 0 -2674135 true "" "plot count-males"
+"female" 1.0 0 -10899396 true "" "plot count-females"
 
 @#$#@#$#@
 ## WHAT IS IT?
