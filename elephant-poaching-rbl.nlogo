@@ -1,43 +1,56 @@
 globals [ max-age circle-size female-maturation-age ]
 turtles-own [ age gender ]
 
+;; ========== setup button ==========
 to setup
   clear-all
 
+  ;; declare global variables
   set max-age 50  ;; elephants live up to 50 years old
   set circle-size 25  ;; bigger means smaller circles
-  ask patches [ set pcolor brown + 4.9 ]  ;; create background with color 39.9 (brown 35+4.9)
+  set female-maturation-age 16
+
+  ;; environment
+  ask patches [ set pcolor green + 2 ]  ;; create background with color 69
+  ;ask patches [ set pcolor brown ]
 
   create-turtles initial-number-elephants [  ;; create agent I with properties
 
     ;; initial value for every agent
     set gender "male"
-    set color red
+    set color blue
     set shape "circle"
     set xcor random-xcor set ycor random-ycor
-    set age random max-age
+    set age (random-float max-age)
     set size age / circle-size  ;; circle size grows with age
 
     ;; initial gender distribution is 50%
     if random 2 = 1 [
       set gender "female"
-      set color green
+      set color pink
+
     ]
 
     age-class  ;; create an age distribution
 
   ]
+  display-labels
   reset-ticks
 end
 
 to age-class
   ;; to create an age distribution
   ;; calf (<1 year old), juvenile (1-5 years old), subadult (5-15 years old), adult (>15 years old)
-
 end
 
+;; / end setup button
+
+
+
+;; ========== go button ==========
 to go
   ;; increase age and adjust size
+
   ask turtles [
     set age age + 0.25  ;; each step represent 3 months/a quarter of a year
     set size age / circle-size
@@ -48,16 +61,55 @@ to go
     if age > max-age [ die ]
   ]
 
+  ;; reproduce elephant
+  ask turtles [
+    give-birth
+  ]
+
   tick
 
-  ;; each step represent 3 months/a quarter
-  ;;
-  if ticks = period * 4 [ stop ]
+  display-labels
+
+  ;; stop simulation
+  ;; stop case: end of period / extinction case (elephant = 0)
+  if count turtles = 0 or period = ticks / 4 [ stop ]
 
 end
 
+to give-birth
+  ;; female elephant giving birth
+  if gender = "female" and age >= female-maturation-age and random-float 1 < 0.17 and round age mod 6 = 0[
+    ;; default values
+    let offspring-gender "male"
+    let offspring-color cyan + 1
 
-;; ===== for plotting =====
+    if random 2 = 1
+    [
+      set offspring-gender "female"
+      set offspring-color violet
+    ]
+
+    ;; hello world from baby elephant
+    hatch 1 [
+      set age 1
+      set gender offspring-gender
+      set size age / circle-size
+      set color offspring-color
+      set xcor random-xcor set ycor random-ycor
+    ]
+  ]
+end
+;; / end go button
+
+;; global ??????smthng
+to display-labels
+  ask turtles [ set label "" ]
+  if show-age? [
+    ask turtles [ set label precision age 2 ]
+  ]
+end
+
+;; ========== for plotting ==========
 
 ; count number of male elephant
 to-report count-males
@@ -71,6 +123,22 @@ end
 to-report count-females
   ifelse count turtles with [ gender = "female" ] > 0 [
     report count turtles with [ gender = "female" ]
+  ]
+  [ report 0 ]
+end
+
+; mean age of living male elephants
+to-report mean-age-males
+  ifelse count turtles with [ gender = "male" ] > 0 [
+    report mean [ age ] of turtles with [ gender = "male" ]
+  ]
+  [ report 0 ]
+end
+
+; mean age of living female elephants
+to-report mean-age-females
+  ifelse count turtles with [ gender = "female" ] > 0 [
+    report mean [ age ] of turtles with [ gender = "female" ]
   ]
   [ report 0 ]
 end
@@ -174,7 +242,7 @@ initial-number-elephants
 initial-number-elephants
 1
 2200
-2200.0
+6.0
 1
 1
 NIL
@@ -216,7 +284,7 @@ INPUTBOX
 96
 246
 period
-50.0
+100.0
 1
 0
 Number
@@ -228,7 +296,7 @@ MONITOR
 554
 year
 ticks / 4
-0
+2
 1
 11
 
@@ -250,6 +318,75 @@ false
 PENS
 "male" 1.0 0 -2674135 true "" "plot count-males"
 "female" 1.0 0 -10899396 true "" "plot count-females"
+
+PLOT
+1347
+306
+1547
+456
+Mean Age
+year
+mean age
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"females" 1.0 0 -10899396 true "" "plot mean-age-females"
+"males" 1.0 0 -2674135 true "" "plot mean-age-males"
+
+MONITOR
+467
+508
+557
+553
+total elephant
+count turtles
+0
+1
+11
+
+BUTTON
+243
+54
+306
+87
+go 10
+repeat 10 [ go ]
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+MONITOR
+584
+523
+700
+568
+NIL
+mean-age-females
+2
+1
+11
+
+SWITCH
+13
+253
+129
+286
+show-age?
+show-age?
+0
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
