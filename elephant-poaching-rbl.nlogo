@@ -1,5 +1,10 @@
-globals [ max-age circle-size female-maturation-age ]
-turtles-own [ age gender ]
+globals [ max-age circle-size female-maturation-age elephant-dead ]
+
+breed [ elephant elephants ]
+breed [ poacher poachers ]
+
+elephant-own [ age gender ]
+poacher-own [ ]
 
 ;; ========== setup button ==========
 to setup
@@ -14,12 +19,19 @@ to setup
   ask patches [ set pcolor green + 2 ]  ;; create background with color 69
   ;ask patches [ set pcolor brown ]
 
-  create-turtles initial-number-elephants [  ;; create agent I with properties
+  setup-elephant
+  setup-poacher
+
+  reset-ticks
+end
+
+to setup-elephant
+  create-elephant initial-number-elephants [
 
     ;; initial value for every agent
     set gender "male"
     set color blue
-    set shape "circle"
+    set shape "mammoth"
     set xcor random-xcor set ycor random-ycor
     set age (random-float max-age)
     set size age / circle-size  ;; circle size grows with age
@@ -34,8 +46,16 @@ to setup
     age-class  ;; create an age distribution
 
   ]
+
   display-labels
-  reset-ticks
+end
+
+to setup-poacher
+  create-poacher initial-number-poacher [
+    set color red
+    set shape "person"
+    set xcor random-xcor set ycor random-ycor
+  ]
 end
 
 to age-class
@@ -43,7 +63,8 @@ to age-class
   ;; calf (<1 year old), juvenile (1-5 years old), subadult (5-15 years old), adult (>15 years old)
 end
 
-;; / end setup button
+;; ///// end setup button
+
 
 
 
@@ -51,19 +72,42 @@ end
 to go
   ;; increase age and adjust size
 
-  ask turtles [
+  ask elephant [
     set age age + 0.25  ;; each step represent 3 months/a quarter of a year
     set size age / circle-size
   ]
 
   ;; die naturally from old age
-  ask turtles [
+  ask elephant [
     if age > max-age [ die ]
   ]
 
   ;; reproduce elephant
-  ask turtles [
+  ask elephant [
     give-birth
+  ]
+
+  ;; elephant random moves
+  ask elephant [
+    let suspected-poacher nobody
+    let target-heading 0
+
+    right (random-float 45 - random-float 45)
+    forward 0.1
+
+    let poachers-in-view poacher in-cone 2 90
+    ifelse any? poachers-in-view [
+      set suspected-poacher one-of poachers-in-view
+      set target-heading 180 + towards suspected-poacher
+      set heading target-heading
+      set label "!"
+    ]
+    [ set label "" ]
+  ]
+
+  ask poacher [
+    move  ;; poacher can move with random direction
+    hunt  ;; whenever poacher meets elephant, the elephant die
   ]
 
   tick
@@ -72,7 +116,7 @@ to go
 
   ;; stop simulation
   ;; stop case: end of period / extinction case (elephant = 0)
-  if count turtles = 0 or period = ticks / 4 [ stop ]
+  if count elephant = 0 or period = ticks / 4 [ stop ]
 
 end
 
@@ -81,12 +125,12 @@ to give-birth
   if gender = "female" and age >= female-maturation-age and random-float 1 < 0.17 and round age mod 6 = 0[
     ;; default values
     let offspring-gender "male"
-    let offspring-color cyan + 1
+    let offspring-color blue
 
     if random 2 = 1
     [
       set offspring-gender "female"
-      set offspring-color violet
+      set offspring-color pink
     ]
 
     ;; hello world from baby elephant
@@ -99,46 +143,68 @@ to give-birth
     ]
   ]
 end
-;; / end go button
+
+to move
+  left random 90
+  right random 90
+  forward 1
+end
+
+to hunt
+  ask poacher [
+    if any? elephant-here [
+      ask elephant-here [ die ]
+      set elephant-dead elephant-dead + 1
+    ]
+  ]
+end
+
+;; ///// end go button
+
+
+
 
 ;; global ??????smthng
 to display-labels
-  ask turtles [ set label "" ]
+  ask elephant [ set label "" ]
   if show-age? [
-    ask turtles [ set label precision age 2 ]
+    ask elephant [ set label precision age 2 ]
   ]
 end
+
+
+
 
 ;; ========== for plotting ==========
 
 ; count number of male elephant
 to-report count-males
-  ifelse count turtles with [ gender = "male" ] > 0 [
-    report count turtles with [ gender = "male" ]
+  ifelse count elephant with [ gender = "male" ] > 0 [
+    report count elephant with [ gender = "male" ]
   ]
   [ report 0 ]
 end
 
 ; count number of female elephant
 to-report count-females
-  ifelse count turtles with [ gender = "female" ] > 0 [
-    report count turtles with [ gender = "female" ]
+  ifelse count elephant with [ gender = "female" ] > 0 [
+    report count elephant with [ gender = "female" ]
   ]
   [ report 0 ]
 end
 
 ; mean age of living male elephants
 to-report mean-age-males
-  ifelse count turtles with [ gender = "male" ] > 0 [
-    report mean [ age ] of turtles with [ gender = "male" ]
+  ifelse count elephant with [ gender = "male" ] > 0 [
+    report mean [ age ] of elephant with [ gender = "male" ]
   ]
   [ report 0 ]
 end
 
 ; mean age of living female elephants
 to-report mean-age-females
-  ifelse count turtles with [ gender = "female" ] > 0 [
-    report mean [ age ] of turtles with [ gender = "female" ]
+  ifelse count elephant with [ gender = "female" ] > 0 [
+    report mean [ age ] of elephant with [ gender = "female" ]
   ]
   [ report 0 ]
 end
@@ -257,7 +323,7 @@ initial-number-poacher
 initial-number-poacher
 0
 50
-50.0
+6.0
 1
 1
 NIL
@@ -284,7 +350,7 @@ INPUTBOX
 96
 246
 period
-100.0
+1000.0
 1
 0
 Number
@@ -313,17 +379,17 @@ number elephant
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"male" 1.0 0 -2674135 true "" "plot count-males"
-"female" 1.0 0 -10899396 true "" "plot count-females"
+"male" 1.0 0 -13345367 true "" "plot count-males"
+"female" 1.0 0 -2064490 true "" "plot count-females"
 
 PLOT
-1347
-306
-1547
-456
+1265
+260
+1465
+410
 Mean Age
 year
 mean age
@@ -332,11 +398,11 @@ mean age
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"females" 1.0 0 -10899396 true "" "plot mean-age-females"
-"males" 1.0 0 -2674135 true "" "plot mean-age-males"
+"females" 1.0 0 -2064490 true "" "plot mean-age-females"
+"males" 1.0 0 -13345367 true "" "plot mean-age-males"
 
 MONITOR
 467
@@ -344,7 +410,7 @@ MONITOR
 557
 553
 total elephant
-count turtles
+count elephant
 0
 1
 11
@@ -367,10 +433,10 @@ NIL
 1
 
 MONITOR
-584
-523
-700
-568
+564
+509
+680
+554
 NIL
 mean-age-females
 2
@@ -387,6 +453,17 @@ show-age?
 0
 1
 -1000
+
+MONITOR
+687
+509
+791
+554
+elephant hunted
+elephant-dead
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -590,6 +667,19 @@ line half
 true
 0
 Line -7500403 true 150 0 150 150
+
+mammoth
+false
+0
+Polygon -7500403 true true 195 181 180 196 165 196 166 178 151 148 151 163 136 178 61 178 45 196 30 196 16 178 16 163 1 133 16 103 46 88 106 73 166 58 196 28 226 28 255 78 271 193 256 193 241 118 226 118 211 133
+Rectangle -7500403 true true 165 195 180 225
+Rectangle -7500403 true true 30 195 45 225
+Rectangle -16777216 true false 165 225 180 240
+Rectangle -16777216 true false 30 225 45 240
+Line -16777216 false 255 90 240 90
+Polygon -7500403 true true 0 165 0 135 15 135 0 165
+Polygon -1 true false 224 122 234 129 242 135 260 138 272 135 287 123 289 108 283 89 276 80 267 73 276 96 277 109 269 122 254 127 240 119 229 111 225 100 214 112
+Polygon -16777216 true false 225 60 195 45 195 105 225 90 225 60
 
 pentagon
 false
