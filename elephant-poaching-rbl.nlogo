@@ -3,8 +3,8 @@ globals [ max-age circle-size female-maturation-age elephant-dead ]
 breed [ elephant elephants ]
 breed [ poacher poachers ]
 
-elephant-own [ age gender ]
-poacher-own [ ]
+elephant-own [ age gender class ]
+poacher-own [ energy max-energy ]
 
 ;; ========== setup button ==========
 to setup
@@ -17,7 +17,6 @@ to setup
 
   ;; environment
   ask patches [ set pcolor green + 2 ]  ;; create background with color 69
-  ;ask patches [ set pcolor brown ]
 
   setup-elephant
   setup-poacher
@@ -40,10 +39,7 @@ to setup-elephant
     if random 2 = 1 [
       set gender "female"
       set color pink
-
     ]
-
-    age-class  ;; create an age distribution
 
   ]
 
@@ -55,12 +51,10 @@ to setup-poacher
     set color red
     set shape "person"
     set xcor random-xcor set ycor random-ycor
-  ]
-end
 
-to age-class
-  ;; to create an age distribution
-  ;; calf (<1 year old), juvenile (1-5 years old), subadult (5-15 years old), adult (>15 years old)
+    set energy 80 + ( random 200 )
+    set max-energy 200
+  ]
 end
 
 ;; ///// end setup button
@@ -71,6 +65,8 @@ end
 ;; ========== go button ==========
 to go
   ;; increase age and adjust size
+
+  age-class  ;; divide elephant by age to 4 classes
 
   ask elephant [
     set age age + 0.25  ;; each step represent 3 months/a quarter of a year
@@ -93,9 +89,11 @@ to go
     let target-heading 0
 
     right (random-float 45 - random-float 45)
-    forward 0.1
+    forward 0.3
 
-    let poachers-in-view poacher in-cone 2 90
+
+    ;; elephant will flee if they see poacher within 90 degree radius
+    let poachers-in-view poacher in-cone 6 360
     ifelse any? poachers-in-view [
       set suspected-poacher one-of poachers-in-view
       set target-heading 180 + towards suspected-poacher
@@ -108,6 +106,9 @@ to go
   ask poacher [
     move  ;; poacher can move with random direction
     hunt  ;; whenever poacher meets elephant, the elephant die
+    if energy > max-energy [ die ]
+
+    display-energy
   ]
 
   tick
@@ -122,7 +123,7 @@ end
 
 to give-birth
   ;; female elephant giving birth
-  if gender = "female" and age >= female-maturation-age and random-float 1 < 0.17 and round age mod 6 = 0[
+  if gender = "female" and age >= female-maturation-age and random-float 1 < 0.17 and round age mod 11 = 0[
     ;; default values
     let offspring-gender "male"
     let offspring-color blue
@@ -148,14 +149,42 @@ to move
   left random 90
   right random 90
   forward 1
+  set energy energy - 4
 end
 
 to hunt
   ask poacher [
     if any? elephant-here [
-      ask elephant-here [ die ]
+      ask elephant-here [
+        ;; elephant survival rate based on age class
+        if class = "calf" [
+          if random-float 1 < 0.15 [ die ]
+        ]
+        if class = "juvenile" [
+          if random-float 1 < 0.04 [ die ]
+        ]
+         if class = "subadult" [
+          if random-float 1 < 0.02 [ die ]
+        ]
+        if class = "adult" [
+          if random-float 1 < 0.15 [ die ]
+        ]
+      ]
       set elephant-dead elephant-dead + 1
     ]
+
+    set energy energy - 8
+  ]
+end
+
+to age-class
+  ask elephant [
+    set class (ifelse-value
+      age <= 1 [ "calf" ]
+      age > 1 and age <= 5 [ "juvenile" ]
+      age > 5 and age <= 15 [ "subadult" ]
+      age > 15 [ "adult" ]
+    )
   ]
 end
 
@@ -169,6 +198,13 @@ to display-labels
   ask elephant [ set label "" ]
   if show-age? [
     ask elephant [ set label precision age 2 ]
+  ]
+end
+
+to display-energy
+  ask poacher [ set label "" ]
+  if show-energy? [
+    ask poacher [ set label precision (energy) 0 ]
   ]
 end
 
@@ -209,13 +245,16 @@ to-report mean-age-females
   [ report 0 ]
 end
 
+; number of elephants based on age class
+; use straight in plot interface
+
 ;; / end plotting
 @#$#@#$#@
 GRAPHICS-WINDOW
-401
-39
-1250
-503
+313
+35
+1162
+499
 -1
 -1
 13.8
@@ -307,38 +346,23 @@ SLIDER
 initial-number-elephants
 initial-number-elephants
 1
-2200
-6.0
+1000
+37.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-211
-100
-384
-133
+14
+137
+187
+170
 initial-number-poacher
 initial-number-poacher
 0
 50
-6.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-13
-142
-185
-175
-kill-rate
-kill-rate
-0
-100
-20.0
+1.0
 1
 1
 NIL
@@ -350,7 +374,7 @@ INPUTBOX
 96
 246
 period
-1000.0
+500.0
 1
 0
 Number
@@ -367,10 +391,10 @@ ticks / 4
 11
 
 PLOT
-1264
-39
-1641
-253
+1180
+35
+1557
+218
 number of elephant
 year
 number elephant
@@ -386,10 +410,10 @@ PENS
 "female" 1.0 0 -2064490 true "" "plot count-females"
 
 PLOT
-1265
-260
-1465
-410
+1180
+224
+1380
+374
 Mean Age
 year
 mean age
@@ -450,7 +474,7 @@ SWITCH
 286
 show-age?
 show-age?
-0
+1
 1
 -1000
 
@@ -464,6 +488,38 @@ elephant-dead
 17
 1
 11
+
+PLOT
+1179
+379
+1520
+529
+number of elephant based on age class
+year
+number of elephant
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"calf" 1.0 0 -2382653 true "" "plot count elephant with [ class = \"calf\" ]"
+"juvenile" 1.0 0 -11033397 true "" "plot count elephant with [ class = \"juvenile\" ]"
+"subadult" 1.0 0 -955883 true "" "plot count elephant with [ class = \"subadult\" ]"
+"adult" 1.0 0 -15040220 true "" "plot count elephant with [ class = \"adult\" ]"
+
+SWITCH
+133
+253
+267
+286
+show-energy?
+show-energy?
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
